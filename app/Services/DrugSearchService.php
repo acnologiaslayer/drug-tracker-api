@@ -2,13 +2,9 @@
 
 namespace App\Services;
 
-use App\Exceptions\RxNormApiException;
-
 class DrugSearchService
 {
-    public function __construct(private readonly RxNormService $rxNormService)
-    {
-    }
+    public function __construct(private readonly RxNormService $rxNormService) {}
 
     /**
      * @return array<int, array<string, mixed>>

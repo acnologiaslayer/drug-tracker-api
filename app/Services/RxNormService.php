@@ -13,15 +13,16 @@ use Throwable;
 class RxNormService
 {
     private const DRUGS_ENDPOINT = 'drugs.json';
+
     private const RXCUI_HISTORY_ENDPOINT = 'rxcui/%s/historystatus.json';
+
     private const RXCUI_VALIDATE_ENDPOINT = 'rxcui/%s.json';
 
     public function __construct(
         private readonly ClientInterface $httpClient,
         private readonly RxNormCacheManager $cacheManager,
         private readonly LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, array<string, mixed>>
@@ -146,12 +147,12 @@ class RxNormService
     }
 
     /**
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     private function request(string $path, array $options = []): array
     {
-        $url = rtrim(config('rxnorm.base_url'), '/') . '/' . ltrim($path, '/');
+        $url = rtrim(config('rxnorm.base_url'), '/').'/'.ltrim($path, '/');
         $options['timeout'] = (int) config('rxnorm.timeout');
 
         try {

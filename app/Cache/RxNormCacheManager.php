@@ -7,9 +7,7 @@ use Illuminate\Cache\Repository;
 
 class RxNormCacheManager
 {
-    public function __construct(private readonly Repository $cache)
-    {
-    }
+    public function __construct(private readonly Repository $cache) {}
 
     public function rememberSearch(string $query, Closure $callback): array
     {
@@ -36,7 +34,7 @@ class RxNormCacheManager
 
     private function searchKey(string $query): string
     {
-        return 'rxnorm:search:' . md5(mb_strtolower(trim($query)));
+        return 'rxnorm:search:'.md5(mb_strtolower(trim($query)));
     }
 
     private function drugKey(string $rxcui): string

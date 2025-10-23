@@ -4,6 +4,4 @@ namespace App\Exceptions;
 
 use Exception;
 
-class InvalidRxcuiException extends Exception
-{
-}
+class InvalidRxcuiException extends Exception {}

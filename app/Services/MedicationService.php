@@ -13,8 +13,7 @@ class MedicationService
     public function __construct(
         private readonly RxNormService $rxNormService,
         private readonly MedicationRepository $repository,
-    ) {
-    }
+    ) {}
 
     public function addMedication(int $userId, string $rxcui): UserMedication
     {
