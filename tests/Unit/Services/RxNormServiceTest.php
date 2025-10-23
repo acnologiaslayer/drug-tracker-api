@@ -96,6 +96,52 @@ class RxNormServiceTest extends TestCase
         $this->assertSame(['Oral Tablet'], $results[0]['dosage_forms']);
     }
 
+    public function test_search_results_are_limited_to_five_entries(): void
+    {
+        $conceptProperties = [];
+
+        for ($i = 1; $i <= 7; $i++) {
+            $conceptProperties[] = [
+                'rxcui' => 'RX' . $i,
+                'name' => 'Drug ' . $i,
+            ];
+        }
+
+        $drugResponse = [
+            'drugGroup' => [
+                'conceptGroup' => [
+                    [
+                        'tty' => 'SBD',
+                        'conceptProperties' => $conceptProperties,
+                    ],
+                ],
+            ],
+        ];
+
+        $this->logger->shouldReceive('error')->never();
+
+        $this->httpClient->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://rxnav.test/drugs.json', Mockery::type('array'))
+            ->andReturn(new Response(200, [], json_encode($drugResponse)));
+
+        $this->cacheManager->shouldReceive('rememberSearch')
+            ->once()
+            ->with('aspirin', Mockery::on(fn ($closure) => is_callable($closure)))
+            ->andReturnUsing(fn ($key, $closure) => $closure());
+
+        $this->cacheManager->shouldReceive('rememberDrugDetails')
+            ->times(5)
+            ->andReturn([
+                'base_names' => ['Example'],
+                'dose_forms' => ['Tablet'],
+            ]);
+
+        $results = $this->service->searchDrugs('aspirin');
+
+        $this->assertCount(5, $results);
+    }
+
     public function test_it_returns_empty_results_for_blank_search_terms(): void
     {
         $this->cacheManager->shouldReceive('rememberSearch')->never();
