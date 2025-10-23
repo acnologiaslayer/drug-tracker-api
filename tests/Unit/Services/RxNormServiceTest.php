@@ -142,6 +142,30 @@ class RxNormServiceTest extends TestCase
         $this->assertCount(5, $results);
     }
 
+    public function test_it_returns_cached_search_results_without_http_requests(): void
+    {
+        $cachedResults = [
+            [
+                'rxcui' => '198440',
+                'name' => 'Aspirin 81 MG Oral Tablet',
+                'ingredient_base_names' => ['Aspirin'],
+                'dosage_forms' => ['Oral Tablet'],
+            ],
+        ];
+
+        $this->httpClient->shouldReceive('request')->never();
+        $this->cacheManager->shouldReceive('rememberDrugDetails')->never();
+
+        $this->cacheManager->shouldReceive('rememberSearch')
+            ->once()
+            ->with('aspirin', Mockery::on(fn ($closure) => is_callable($closure)))
+            ->andReturn($cachedResults);
+
+        $results = $this->service->searchDrugs('aspirin');
+
+        $this->assertSame($cachedResults, $results);
+    }
+
     public function test_it_returns_empty_results_for_blank_search_terms(): void
     {
         $this->cacheManager->shouldReceive('rememberSearch')->never();
@@ -150,6 +174,26 @@ class RxNormServiceTest extends TestCase
         $results = $this->service->searchDrugs('   ');
 
         $this->assertSame([], $results);
+    }
+
+    public function test_it_returns_cached_drug_details_without_http_requests(): void
+    {
+        $cachedDetails = [
+            'name' => 'Aspirin 81 MG Oral Tablet',
+            'base_names' => ['Aspirin'],
+            'dose_forms' => ['Oral Tablet'],
+        ];
+
+        $this->httpClient->shouldReceive('request')->never();
+
+        $this->cacheManager->shouldReceive('rememberDrugDetails')
+            ->once()
+            ->with('198440', Mockery::on(fn ($closure) => is_callable($closure)))
+            ->andReturn($cachedDetails);
+
+        $details = $this->service->getDrugDetails('198440');
+
+        $this->assertSame($cachedDetails, $details);
     }
 
     public function test_it_fetches_drug_details_from_rxnorm(): void
