@@ -1,0 +1,286 @@
+{
+  "info": {
+    "name": "Drug Tracker API",
+    "_postman_id": "8b6f1b3f-9b9b-4e60-a8d2-b955f192d08b",
+    "description": "Drug Tracker API requests for quick manual testing.\n\nWorkflow:\n1. Run **Register** once to seed a user (or create via database).\n2. Run **Login** to obtain a Sanctum token (stored in collection variable `authToken`).\n3. Execute protected medication routes using the stored token.\n4. Use **Logout** to revoke the token when finished.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Jane Doe\",\n    \"email\": \"jane@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Create a new user account. Duplicate emails will be rejected with HTTP 422."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var data = pm.response.json();",
+                  "  if (data.data && data.data.access_token) {",
+                  "    pm.collectionVariables.set('authToken', data.data.access_token);",
+                  "    pm.collectionVariables.set('tokenType', data.data.token_type || 'Bearer');",
+                  "  }",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"jane@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticate an existing user. Stores the returned token in `authToken` for downstream requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  pm.collectionVariables.unset('authToken');",
+                  "  pm.collectionVariables.unset('tokenType');",
+                  "}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revoke the active token. Requires `Authorization: Bearer {{authToken}}`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Drug Search",
+      "item": [
+        {
+          "name": "Search Drugs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/drugs?drug_name=aspirin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "search",
+                "drugs"
+              ],
+              "query": [
+                {
+                  "key": "drug_name",
+                  "value": "aspirin",
+                  "description": "Name fragment to search (min length 2)."
+                }
+              ]
+            },
+            "description": "Public endpoint for RxNorm-backed drug search. Subject to public rate limiter."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Medications",
+      "item": [
+        {
+          "name": "List Medications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/medications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medications"
+              ]
+            },
+            "description": "Retrieve the authenticated user's saved medications."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Medication",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rxcui\": \"198440\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/medications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medications"
+              ]
+            },
+            "description": "Save a medication for the authenticated user by RXCUI. Duplicate entries return HTTP 409."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Medication",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/medications/{{medicationRxcui}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "medications",
+                "{{medicationRxcui}}"
+              ]
+            },
+            "description": "Remove a medication for the authenticated user by RXCUI. Not found returns HTTP 404."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost/api"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "tokenType",
+      "value": "Bearer"
+    },
+    {
+      "key": "medicationRxcui",
+      "value": "198440"
+    }
+  ]
+}
