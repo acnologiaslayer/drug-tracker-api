@@ -37,7 +37,7 @@ class RxNormServiceTest extends TestCase
         $this->httpClient = Mockery::mock(ClientInterface::class);
         $this->cacheManager = Mockery::mock(RxNormCacheManager::class);
         $this->logger = Mockery::mock(LoggerInterface::class);
-        $this->cacheStore = new CacheRepository(new ArrayStore);
+        $this->cacheStore = new CacheRepository(new ArrayStore());
 
         Config::set('rxnorm.base_url', 'https://rxnav.test');
         Config::set('rxnorm.timeout', 5);
@@ -120,8 +120,8 @@ class RxNormServiceTest extends TestCase
 
         for ($i = 1; $i <= 7; $i++) {
             $conceptProperties[] = [
-                'rxcui' => 'RX'.$i,
-                'name' => 'Drug '.$i,
+                'rxcui' => 'RX' . $i,
+                'name' => 'Drug ' . $i,
             ];
         }
 
@@ -315,7 +315,8 @@ class RxNormServiceTest extends TestCase
         $this->logger->shouldReceive('error')->once();
         $this->logger->shouldReceive('warning')->never();
 
-        $exception = new class('Not Found', 404) extends \Exception implements GuzzleException {};
+        $exception = new class ('Not Found', 404) extends \Exception implements GuzzleException {
+        };
 
         $this->httpClient->shouldReceive('request')
             ->once()
@@ -332,7 +333,8 @@ class RxNormServiceTest extends TestCase
         $this->logger->shouldReceive('error')->once();
         $this->logger->shouldReceive('warning')->never();
 
-        $exception = new class('Timeout', 500) extends \Exception implements GuzzleException {};
+        $exception = new class ('Timeout', 500) extends \Exception implements GuzzleException {
+        };
 
         $this->httpClient->shouldReceive('request')
             ->once()
@@ -364,9 +366,12 @@ class RxNormServiceTest extends TestCase
             ->times(3)
             ->with('GET', 'https://rxnav.test/drugs.json', Mockery::type('array'))
             ->andThrow(
-                new class('Server Error', 500) extends \Exception implements GuzzleException {},
-                new class('Server Error', 500) extends \Exception implements GuzzleException {},
-                new class('Server Error', 500) extends \Exception implements GuzzleException {},
+                new class ('Server Error', 500) extends \Exception implements GuzzleException {
+                },
+                new class ('Server Error', 500) extends \Exception implements GuzzleException {
+                },
+                new class ('Server Error', 500) extends \Exception implements GuzzleException {
+                },
             );
 
         $this->cacheManager->shouldReceive('rememberSearch')
@@ -395,8 +400,10 @@ class RxNormServiceTest extends TestCase
             ->times(2)
             ->with('GET', 'https://rxnav.test/drugs.json', Mockery::type('array'))
             ->andThrow(
-                new class('Server Error', 500) extends \Exception implements GuzzleException {},
-                new class('Server Error', 500) extends \Exception implements GuzzleException {},
+                new class ('Server Error', 500) extends \Exception implements GuzzleException {
+                },
+                new class ('Server Error', 500) extends \Exception implements GuzzleException {
+                },
             );
 
         $this->cacheManager->shouldReceive('rememberSearch')
@@ -425,6 +432,158 @@ class RxNormServiceTest extends TestCase
         $this->expectException(RxNormApiException::class);
         $this->expectExceptionMessage('RxNorm service is temporarily unavailable. Please try again later.');
         $this->expectExceptionCode(HttpResponse::HTTP_SERVICE_UNAVAILABLE);
+
+        $this->service->searchDrugs('aspirin');
+    }
+
+    public function test_get_drug_details_returns_empty_arrays_for_blank_rxcui(): void
+    {
+        $this->cacheManager->shouldReceive('rememberDrugDetails')->never();
+
+        $this->assertSame([
+            'base_names' => [],
+            'dose_forms' => [],
+        ], $this->service->getDrugDetails('   '));
+    }
+
+    public function test_validate_rxcui_rejects_blank_values(): void
+    {
+        $this->logger->shouldReceive('error')->never();
+        $this->logger->shouldReceive('warning')->never();
+
+        $this->assertFalse($this->service->validateRxcui('   '));
+    }
+
+    public function test_validate_rxcui_returns_false_when_response_body_is_empty(): void
+    {
+        $this->logger->shouldReceive('error')->never();
+        $this->logger->shouldReceive('warning')->never();
+
+        $this->httpClient->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://rxnav.test/rxcui/198440.json', Mockery::type('array'))
+            ->andReturn(new Response(200, [], ''));
+
+        $this->assertFalse($this->service->validateRxcui('198440'));
+    }
+
+    public function test_validate_rxcui_handles_scalar_identifier(): void
+    {
+        $responseBody = [
+            'idGroup' => [
+                'rxnormId' => '198440',
+            ],
+        ];
+
+        $this->logger->shouldReceive('error')->never();
+        $this->logger->shouldReceive('warning')->never();
+
+        $this->httpClient->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://rxnav.test/rxcui/198440.json', Mockery::type('array'))
+            ->andReturn(new Response(200, [], json_encode($responseBody)));
+
+        $this->assertTrue($this->service->validateRxcui('198440'));
+    }
+
+    public function test_it_throws_custom_exception_for_malformed_json_responses(): void
+    {
+        Config::set('rxnorm.retry.attempts', 1);
+
+        $this->logger->shouldReceive('error')->once();
+        $this->logger->shouldReceive('warning')->never();
+
+        $this->httpClient->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://rxnav.test/drugs.json', Mockery::type('array'))
+            ->andReturn(new Response(200, [], '{'));
+
+        $this->cacheManager->shouldReceive('rememberSearch')
+            ->once()
+            ->with('aspirin', Mockery::on(fn ($closure) => is_callable($closure)))
+            ->andReturnUsing(fn ($key, $closure) => $closure());
+
+        $this->cacheManager->shouldReceive('rememberDrugDetails')->never();
+
+        $this->expectException(RxNormApiException::class);
+        $this->expectExceptionMessage('Unexpected response from RxNorm API.');
+
+        $this->service->searchDrugs('aspirin');
+    }
+
+    public function test_validate_rxcui_rethrows_unexpected_http_errors(): void
+    {
+        Config::set('rxnorm.retry.attempts', 1);
+
+        $this->logger->shouldReceive('error')->once();
+        $this->logger->shouldReceive('warning')->never();
+
+        $exception = new class ('Server Error', 500) extends \Exception implements GuzzleException {
+        };
+
+        $this->httpClient->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://rxnav.test/rxcui/198440.json', Mockery::type('array'))
+            ->andThrow($exception);
+
+        $this->expectException(RxNormApiException::class);
+        $this->expectExceptionMessage('Failed to communicate with RxNorm API.');
+
+        $this->service->validateRxcui('198440');
+    }
+
+    public function test_circuit_breaker_resets_after_cooldown_expires(): void
+    {
+        Config::set('rxnorm.retry.attempts', 1);
+
+        $this->cacheStore->put('rxnorm:circuit:open_until', time() - 10, 60);
+        $this->cacheStore->put('rxnorm:circuit:failures', 3, 60);
+
+        $responseBody = [
+            'idGroup' => [
+                'rxnormId' => ['123'],
+            ],
+        ];
+
+        $this->logger->shouldReceive('error')->never();
+        $this->logger->shouldReceive('warning')->never();
+
+        $this->httpClient->shouldReceive('request')
+            ->once()
+            ->with('GET', 'https://rxnav.test/rxcui/123.json', Mockery::type('array'))
+            ->andReturn(new Response(200, [], json_encode($responseBody)));
+
+        $this->assertTrue($this->service->validateRxcui('123'));
+        $this->assertNull($this->cacheStore->get('rxnorm:circuit:open_until'));
+        $this->assertNull($this->cacheStore->get('rxnorm:circuit:failures'));
+    }
+
+    public function test_it_respects_retry_delay_configuration(): void
+    {
+        Config::set('rxnorm.retry.attempts', 2);
+        Config::set('rxnorm.retry.delay_ms', 1);
+        Config::set('rxnorm.retry.backoff_multiplier', 1);
+
+        $this->logger->shouldReceive('error')->times(2);
+        $this->logger->shouldReceive('warning')->never();
+
+        $exception = new class ('Server Error', 500) extends \Exception implements GuzzleException {
+        };
+
+        $this->httpClient->shouldReceive('request')
+            ->twice()
+            ->with('GET', 'https://rxnav.test/drugs.json', Mockery::type('array'))
+            ->andThrow($exception);
+
+        $this->cacheManager->shouldReceive('rememberSearch')
+            ->once()
+            ->with('aspirin', Mockery::on(fn ($closure) => is_callable($closure)))
+            ->andReturnUsing(fn ($key, $closure) => $closure());
+
+        $this->cacheManager->shouldReceive('rememberDrugDetails')->never();
+
+        $this->expectException(RxNormApiException::class);
+        $this->expectExceptionMessage('Failed to communicate with RxNorm API.');
 
         $this->service->searchDrugs('aspirin');
     }
