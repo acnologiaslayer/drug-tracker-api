@@ -11,7 +11,7 @@ class PublicSearchRateLimiter
 {
     public function handle(Request $request, Closure $next)
     {
-        $key = 'public-search:' . $request->ip();
+        $key = 'public-search:'.$request->ip();
         $attempts = (int) config('rate_limit.public_search.attempts', 60);
         $seconds = (int) config('rate_limit.public_search.per_minutes', 1) * 60;
 
@@ -30,4 +30,3 @@ class PublicSearchRateLimiter
         return $next($request);
     }
 }
-

@@ -1,61 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Drug Tracker API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 REST API that lets users search RxNorm medications and manage a personal medication list with secure authentication, caching, and rate limiting. The service integrates with the National Library of Medicine's RxNorm API and ships with automated tests, retry/circuit-breaker safeguards, and Postman assets for manual verification.
 
-## About Laravel
+## Features
+- **Authentication**: Laravel Sanctum token auth with registration and login endpoints.
+- **Drug Search**: Public search endpoint backed by an RxNorm integration, resource transformers, and Redis caching.
+- **Medication Management**: Authenticated CRUD for a user's medication list with duplicate protection and RXCUI validation.
+- **Resilience**: Configurable retries with exponential backoff plus a Redis-backed circuit breaker for upstream RxNorm outages.
+- **Rate Limiting**: Distinct throttles for public and authenticated routes via custom middleware.
+- **Testing**: 49 passing PHPUnit tests (unit + feature + integration) covering services, repositories, middleware, and end-to-end flows.
+- **Tooling**: Laravel Pint for linting, Postman collection/environment, Docker compose for local stack, and extensive configuration via `.env`.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
+- PHP 8.2, Laravel 12, Sanctum
+- MySQL 8, Redis
+- Guzzle HTTP client
+- PHPUnit & Mockery
+- Docker / Docker Compose (optional)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Local Setup
+1. **Install dependencies**
+	```bash
+	composer install
+	npm install
+	```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+2. **Environment**
+	```bash
+	cp .env.example .env
+	php artisan key:generate
+	```
 
-## Learning Laravel
+3. **Configure services**
+	- Set your database credentials in `.env` (MySQL or SQLite for quick tests).
+	- Configure Redis if using caching/rate limiting (falls back to array cache in testing).
+	- Adjust RxNorm settings as needed (see [Configuration](#configuration)).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+4. **Database**
+	```bash
+	php artisan migrate
+	```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+5. **Run the API**
+	```bash
+	php artisan serve
+	```
+	The API is available at `http://localhost:8000/api`.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Docker (optional)
+The repository includes `docker-compose.yml` for PHP, MySQL, and Redis.
+```bash
+docker-compose up -d
+docker-compose exec app composer install
+docker-compose exec app php artisan migrate
+```
 
-## Laravel Sponsors
+## Configuration
+Key environment variables from `.env.example`:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Variable | Description | Default |
+| --- | --- | --- |
+| `APP_URL` | Base application URL | `http://localhost:8000` |
+| `DB_*` | Database connection settings | MySQL service defaults |
+| `CACHE_STORE` | Cache driver (`redis`, `array`, etc.) | `redis` |
+| `RXNORM_API_URL` | RxNorm REST base URL | `https://rxnav.nlm.nih.gov/REST/` |
+| `RXNORM_API_TIMEOUT` | HTTP timeout (seconds) | `10` |
+| `RXNORM_CACHE_TTL` | Cache TTL for RxNorm responses (seconds) | `86400` |
+| `RXNORM_RETRY_ATTEMPTS` | Retry attempts for RxNorm calls | `3` |
+| `RXNORM_RETRY_DELAY_MS` | Initial retry delay (ms) | `200` |
+| `RXNORM_RETRY_BACKOFF` | Exponential backoff multiplier | `2` |
+| `RXNORM_CIRCUIT_FAILURE_THRESHOLD` | Failures before circuit opens | `5` |
+| `RXNORM_CIRCUIT_COOLDOWN` | Circuit cooldown (seconds) | `60` |
+| `RATE_LIMIT_PUBLIC` | Requests per minute for public search | `60` |
+| `RATE_LIMIT_AUTHENTICATED` | Requests per minute for authed APIs | `120` |
 
-### Premium Partners
+## Testing & Quality
+Run the full suite (unit, feature, integration):
+```bash
+php artisan test
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Run with coverage:
+```bash
+php artisan test --coverage
+```
+
+Code style (Laravel Pint):
+```bash
+./vendor/bin/pint
+```
+
+## API Overview
+| Method | Endpoint | Auth | Description |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | ❌ | Create a user and return Sanctum token |
+| `POST` | `/api/auth/login` | ❌ | Login and obtain a token |
+| `POST` | `/api/auth/logout` | ✅ | Revoke current token |
+| `GET` | `/api/search/drugs` | ❌ | Search RxNorm by `drug_name` query |
+| `GET` | `/api/medications` | ✅ | List current user's medications |
+| `POST` | `/api/medications` | ✅ | Add medication by `rxcui` (validated via RxNorm) |
+| `DELETE` | `/api/medications/{rxcui}` | ✅ | Remove medication |
+
+### Rate Limiting
+- Public search: `RATE_LIMIT_PUBLIC` per minute, keyed by IP.
+- Authenticated routes: `RATE_LIMIT_AUTHENTICATED` per minute, keyed by user ID (fallback to IP).
+- Responses include `retry_after` seconds when throttled.
+
+### Caching & Resilience
+- RxNorm search and detail responses cached via `App\Cache\RxNormCacheManager`.
+- Retries: Exponential backoff using configuration above.
+- Circuit breaker: Redis-backed counters open the circuit after consecutive failures and short-circuit calls for the cooldown window.
+
+## Postman Collection
+Import `postman/drug-tracker-api.postman_collection.json` and the matching environment in `postman/environments/`. The collection mirrors automated tests and stores tokens automatically after login.
+
+## Project Structure Highlights
+- `app/Services/RxNormService.php`: Handles external calls, caching, retry, and circuit breaker.
+- `app/Services/MedicationService.php`: Business logic for medication CRUD.
+- `app/Repositories/MedicationRepository.php`: Eloquent repository abstraction for `user_medications`.
+- `app/Http/Middleware/*RateLimiter.php`: Custom throttling per route type.
+- `tests/Feature/CompleteMedicationFlowTest.php`: Full user happy-path integration test.
+- `tests/Unit/Services/*`: Unit coverage for service classes.
 
 ## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. Fork and clone the repository.
+2. Create a topic branch: `git checkout -b feature/your-change`.
+3. Add tests for your change and run `php artisan test`.
+4. Run Pint for style consistency.
+5. Submit a PR with context and screenshots/logs as relevant.
 
 ## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT License. See `LICENSE` for details.

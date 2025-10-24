@@ -16,13 +16,16 @@ class UserMedicationResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        /** @var UserMedication $medication */
+        $medication = $this->resource;
+
         return [
-            'id' => $this->id,
-            'rxcui' => $this->rxcui,
-            'drug_name' => $this->drug_name,
-            'base_names' => $this->base_names,
-            'dose_form_group_names' => $this->dose_form_group_names,
-            'added_at' => $this->created_at?->toIso8601String(),
+            'id' => $medication->id,
+            'rxcui' => $medication->rxcui,
+            'drug_name' => $medication->drug_name,
+            'base_names' => $medication->base_names ?? [],
+            'dose_form_group_names' => $medication->dose_form_group_names ?? [],
+            'added_at' => $medication->created_at?->toIso8601String(),
         ];
     }
 }

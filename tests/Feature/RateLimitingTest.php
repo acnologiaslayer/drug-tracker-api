@@ -83,7 +83,7 @@ class RateLimitingTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $key = 'auth-rate:' . $user->id;
+        $key = 'auth-rate:'.$user->id;
         RateLimiter::clear($key);
         $this->rateLimiterKeys[] = $key;
 
@@ -110,7 +110,7 @@ class RateLimitingTest extends TestCase
     }
 
     /**
-     * @param callable(MockInterface): void $expectations
+     * @param  callable(MockInterface): void  $expectations
      */
     private function mockDrugSearchService(callable $expectations): void
     {
@@ -126,7 +126,7 @@ class RateLimitingTest extends TestCase
         $mock->shouldReceive('listMedications')
             ->once()
             ->with($userId)
-            ->andReturn(new EloquentCollection());
+            ->andReturn(new EloquentCollection);
 
         $this->app->instance(MedicationService::class, $mock);
     }

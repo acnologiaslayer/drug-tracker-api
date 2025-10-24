@@ -81,7 +81,7 @@ class DrugSearchTest extends TestCase
     }
 
     /**
-     * @param callable(MockInterface):void $expectations
+     * @param  callable(MockInterface):void  $expectations
      */
     private function mockDrugSearchService(callable $expectations): void
     {

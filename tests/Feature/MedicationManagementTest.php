@@ -198,7 +198,7 @@ class MedicationManagementTest extends TestCase
     }
 
     /**
-     * @param callable(MockInterface):void $expectations
+     * @param  callable(MockInterface):void  $expectations
      */
     private function mockRxNormService(callable $expectations): void
     {

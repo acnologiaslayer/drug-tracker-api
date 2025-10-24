@@ -23,9 +23,9 @@ class RegisterRequestTest extends TestCase
     {
         $this->ensureSqliteDriver();
 
-    $request = new RegisterRequest();
+        $request = new RegisterRequest;
 
-    $validator = Validator::make([], $request->rules());
+        $validator = Validator::make([], $request->rules());
 
         $this->assertTrue($validator->fails());
         $this->assertEqualsCanonicalizing(
@@ -38,7 +38,7 @@ class RegisterRequestTest extends TestCase
     {
         $this->ensureSqliteDriver();
 
-        $request = new RegisterRequest();
+        $request = new RegisterRequest;
 
         $validator = Validator::make([
             'name' => 'Jane Doe',
@@ -54,7 +54,7 @@ class RegisterRequestTest extends TestCase
     {
         $this->ensureSqliteDriver();
 
-        $request = new RegisterRequest();
+        $request = new RegisterRequest;
 
         $validator = Validator::make([
             'name' => 'Jane Doe',
@@ -72,7 +72,7 @@ class RegisterRequestTest extends TestCase
 
         User::factory()->create(['email' => 'duplicate@example.com']);
 
-        $request = new RegisterRequest();
+        $request = new RegisterRequest;
 
         $validator = Validator::make([
             'name' => 'Jane Doe',

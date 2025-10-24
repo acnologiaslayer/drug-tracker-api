@@ -34,7 +34,7 @@ class RxNormCacheManagerTest extends TestCase
 
     public function test_it_remembers_search_results(): void
     {
-        $expectedKey = 'rxnorm:search:' . md5('aspirin');
+        $expectedKey = 'rxnorm:search:'.md5('aspirin');
 
         $this->cache->shouldReceive('remember')
             ->once()
@@ -48,7 +48,7 @@ class RxNormCacheManagerTest extends TestCase
 
     public function test_it_returns_empty_array_when_search_callback_returns_null(): void
     {
-        $expectedKey = 'rxnorm:search:' . md5('aspirin');
+        $expectedKey = 'rxnorm:search:'.md5('aspirin');
 
         $this->cache->shouldReceive('remember')
             ->once()
