@@ -130,14 +130,18 @@ class RxNormService
         $ids = Arr::get($response, 'idGroup.rxnormId');
 
         if (is_array($ids)) {
-            return in_array($rxcui, $ids, true);
+            $stringIds = array_map(static fn ($id) => (string) $id, $ids);
+
+            return in_array($rxcui, $stringIds, true);
         }
 
-        if (is_string($ids)) {
-            return $ids === $rxcui;
+        if (is_string($ids) || is_int($ids)) {
+            return (string) $ids === $rxcui;
         }
 
-        return false;
+        $name = (string) Arr::get($response, 'idGroup.name', '');
+
+        return trim($name) !== '';
     }
 
     private function fetchDrugName(string $rxcui): string

@@ -10,10 +10,14 @@ RUN apt-get update \
         libicu-dev \
         libxml2-dev \
         libonig-dev \
+        build-essential \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && docker-php-ext-install \
         intl \
         pdo_mysql \
         zip \
+    && apt-get purge -y --auto-remove build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

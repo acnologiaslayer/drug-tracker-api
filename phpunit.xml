@@ -28,6 +28,10 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <env name="APP_CONFIG_CACHE" value="bootstrap/cache/config.testing.php"/>
+        <env name="APP_EVENTS_CACHE" value="bootstrap/cache/events.testing.php"/>
+        <env name="APP_PACKAGES_CACHE" value="bootstrap/cache/packages.testing.php"/>
+        <env name="APP_SERVICES_CACHE" value="bootstrap/cache/services.testing.php"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
