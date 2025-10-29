@@ -10,18 +10,23 @@ services:
     volumes:
       - ./:/var/www/html
     depends_on:
-      - database
-      - redis
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
       APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
       DB_HOST: database
+      DB_PORT: 3306
       DB_DATABASE: drug_tracker
       DB_USERNAME: drug_tracker
       DB_PASSWORD: secret
       CACHE_STORE: redis
       REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "8000:8000"
     command: php -S 0.0.0.0:8000 -t public
@@ -40,6 +45,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
