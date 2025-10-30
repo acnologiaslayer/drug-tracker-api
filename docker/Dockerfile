@@ -11,11 +11,9 @@ RUN apk add --no-cache \
 
 # Install PHP extensions one at a time to reduce peak memory usage
 # This is critical for t3.micro instances with only 1GB RAM
+# Note: opcache is already included in php:8.3-fpm-alpine, no need to install
 RUN docker-php-ext-install pdo_mysql
 RUN docker-php-ext-install zip
-RUN docker-php-ext-install opcache
-
-# Install intl separately (this is the most memory-intensive)
 RUN docker-php-ext-install intl
 
 # Install redis from PECL
