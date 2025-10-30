@@ -1,23 +1,21 @@
 FROM php:8.3-fpm
 
-# Install system dependencies
+# Use the PHP extension installer for MUCH faster builds
+COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+
+# Install PHP extensions (uses pre-compiled binaries when possible - 10x faster!)
+RUN install-php-extensions \
+    redis \
+    intl \
+    pdo_mysql \
+    zip \
+    opcache
+
+# Install minimal system dependencies
 RUN apt-get update \
-    && apt-get install -y \
-        curl \
+    && apt-get install -y --no-install-recommends \
         git \
         unzip \
-        libzip-dev \
-        libicu-dev \
-        libxml2-dev \
-        libonig-dev \
-        build-essential \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && docker-php-ext-install \
-        intl \
-        pdo_mysql \
-        zip \
-    && apt-get purge -y --auto-remove build-essential \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -26,7 +24,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy composer files
+# Copy composer files first (for better caching)
 COPY composer.json composer.lock ./
 
 # Install PHP dependencies
@@ -34,6 +32,12 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 
 # Copy application files
 COPY . .
+
+# Add tuned PHP-FPM pool config for t3.micro low-memory instances
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-dt-www.conf
+
+# Add opcache config tuned for t3.micro
+COPY docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
