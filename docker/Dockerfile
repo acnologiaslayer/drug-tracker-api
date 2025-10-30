@@ -1,23 +1,27 @@
-FROM php:8.3-fpm
+FROM php:8.3-fpm-alpine
 
-# Use the PHP extension installer for MUCH faster builds
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+# Install system dependencies (Alpine uses apk, smaller packages)
+RUN apk add --no-cache \
+    git \
+    unzip \
+    icu-dev \
+    libzip-dev \
+    mysql-client \
+    && rm -rf /var/cache/apk/*
 
-# Install PHP extensions (uses pre-compiled binaries when possible - 10x faster!)
-RUN install-php-extensions \
-    redis \
+# Install PHP extensions using docker-php-ext-install (built-in, memory efficient)
+RUN docker-php-ext-install \
     intl \
     pdo_mysql \
     zip \
     opcache
 
-# Install minimal system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        git \
-        unzip \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Install redis from PECL
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps \
+    && rm -rf /tmp/pear
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -39,14 +43,10 @@ COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/zz-dt-www.conf
 # Add opcache config tuned for t3.micro
 COPY docker/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
-# Set permissions
+# Set permissions (Alpine doesn't have usermod, use adduser)
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
-
-# Configure PHP-FPM to run as www-data
-RUN usermod -u 1000 www-data \
-    && groupmod -g 1000 www-data
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
