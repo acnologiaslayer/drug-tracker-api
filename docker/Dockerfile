@@ -9,12 +9,14 @@ RUN apk add --no-cache \
     mysql-client \
     && rm -rf /var/cache/apk/*
 
-# Install PHP extensions using docker-php-ext-install (built-in, memory efficient)
-RUN docker-php-ext-install \
-    intl \
-    pdo_mysql \
-    zip \
-    opcache
+# Install PHP extensions one at a time to reduce peak memory usage
+# This is critical for t3.micro instances with only 1GB RAM
+RUN docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install zip
+RUN docker-php-ext-install opcache
+
+# Install intl separately (this is the most memory-intensive)
+RUN docker-php-ext-install intl
 
 # Install redis from PECL
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
