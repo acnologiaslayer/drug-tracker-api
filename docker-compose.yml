@@ -1,9 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    image: drug-tracker-app
+    image: mahir009/drug-tracker:latest
     container_name: drug-tracker-app
     restart: unless-stopped
     working_dir: /var/www/html
