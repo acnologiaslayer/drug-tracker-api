@@ -23,12 +23,21 @@ fi
 echo "Caching configuration..."
 php artisan config:cache
 
-# Run migrations (continue on error if tables already exist)
+# Run migrations
 echo "Running database migrations..."
-php artisan migrate --force --no-interaction || {
-    echo "Migration failed, attempting to mark existing migrations as run..."
-    php artisan migrate:status
-    echo "Continuing with startup..."
+php artisan migrate --force --no-interaction 2>&1 | tee /tmp/migrate.log || {
+    if grep -q "already exists" /tmp/migrate.log; then
+        echo ""
+        echo "⚠️  Tables already exist - this is normal on container restart."
+        echo "Migration will be skipped. Database is ready."
+        echo ""
+    else
+        echo ""
+        echo "❌ Migration failed with unexpected error:"
+        cat /tmp/migrate.log
+        echo ""
+        exit 1
+    fi
 }
 
 # Optimize for production
