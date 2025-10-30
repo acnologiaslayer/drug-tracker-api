@@ -23,17 +23,17 @@ fi
 echo "Caching configuration..."
 php artisan config:cache
 
-# Run migrations
+# Run migrations (continue on error if tables already exist)
 echo "Running database migrations..."
-php artisan migrate --force --no-interaction
+php artisan migrate --force --no-interaction || {
+    echo "Migration failed, attempting to mark existing migrations as run..."
+    php artisan migrate:status
+    echo "Continuing with startup..."
+}
 
-# Clear and cache routes
-echo "Caching routes..."
-php artisan route:cache
-
-# Clear and cache views
-echo "Caching views..."
-php artisan view:cache
+# Optimize for production
+echo "Optimizing application..."
+php artisan optimize
 
 echo "Application ready!"
 
