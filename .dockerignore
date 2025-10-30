@@ -13,6 +13,7 @@ Dockerfile
 README.md
 
 # Development files
+.env
 .env.example
 .editorconfig
 .styleci.yml
